@@ -3,12 +3,12 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBjt7poQhUWr9aS4TqZosTSVnUrldLFhMw",
-  authDomain: "adventour-app-8f086.firebaseapp.com",
-  projectId: "adventour-app-8f086",
-  storageBucket: "adventour-app-8f086.firebasestorage.app",
-  messagingSenderId: "681194859420",
-  appId: "1:681194859420:web:c70648f9ac1d5233d83659",
+  apiKey: "AIzaSyCnR2PHeejXN9SP-RqiY3cbQhWP0VTmnow",
+  authDomain: "adventour-app-31dca.firebaseapp.com",
+  projectId: "adventour-app-31dca",
+  storageBucket: "adventour-app-31dca.firebasestorage.app",
+  messagingSenderId: "843595656509",
+  appId: "1:843595656509:web:7d68e1001f619b0afee954",
 };
 
 const app = initializeApp(firebaseConfig);

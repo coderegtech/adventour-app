@@ -5,7 +5,7 @@ export const IconGoogle = (props) => {
   return (
     <Image
       alt=""
-      src={"https://www.svgrepo.com/show/475656/google-color.svg"}
+      src={"https://www.svgrepo.com/show/353817/google-icon.svg"}
       width={props.width}
       height={props.height}
     />

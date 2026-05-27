@@ -1,28 +1,18 @@
-"use client";
+export const fetchTouristSpots = async () => {
+  try {
+    const highRatingItem = data?.filter((item) => item.ratings > 3);
+    console.log(highRatingItem);
 
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-
-const PopularSlides = ({ data, setSelectedItem }) => {
-  const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
-  const [locations, setLocations] = useState([]);
-
-  useEffect(() => {
-    setIsLoading(true);
-    const fetchTouristSpots = async () => {
-      try {
-        const highRatingItem = data?.filter((item) => item.ratings > 3);
-        console.log(highRatingItem);
-        setLocations(highRatingItem);
-        setIsLoading(false);
-      } catch (error) {
-        console.log(error);
-      }
+    return {
+      locations: highRatingItem,
     };
+  } catch (error) {
+    console.log(error);
+  }
+};
 
-    fetchTouristSpots();
-  }, [data]);
+const PopularSlides = async ({ data, setSelectedItem }) => {
+  const { locations } = await fetchTouristSpots();
 
   const handleSelectItem = (id) => {
     if (!id) return;

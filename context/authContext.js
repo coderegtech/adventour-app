@@ -27,6 +27,7 @@ const AuthProvider = ({ children }) => {
         // Handle Google and other provider-based redirects
         const response = await getRedirectResult(auth);
         if (response) {
+          console.log(response);
           const token = await response.user.getIdToken();
           setUser({
             uid: response.user.uid,
