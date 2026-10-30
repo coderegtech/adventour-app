@@ -63,7 +63,7 @@ export const IconBell = (props) => {
   return (
     <Image
       alt=""
-      src={"https://fruitask.com/assets/flat/icon/v1/solid/svg/fi-sr-bell.svg"}
+      src="/svg/bell.svg"
       width={props.width}
       height={props.height}
       className="fill-green-600"
