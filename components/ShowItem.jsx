@@ -171,15 +171,15 @@ const ShowItem = ({ data, close }) => {
                   {item.name}
                 </h2>
                 <ul className="text-xs p-2 text-neutral-800">
-                  {item.tours.map((tour, i) => (
+                  {(item.tours ?? []).map((tour, i) => (
                     <li key={i}>
                       {tour.name ? `Tour ${tour.name} - ` : "Tour - "}
                       {tour.destinations ? tour.destinations.join(" | ") : tour}
                     </li>
                   ))}
-                  <li>Transportation - {item.transportation}</li>
-                  <li>Hotel - {item.hotel}</li>
-                  <li>Price - {item.price.toLocaleString()}</li>
+                  {item.transportation && <li>Transportation - {item.transportation}</li>}
+                  {item.hotel && <li>Hotel - {item.hotel}</li>}
+                  <li>Price - {item.price?.toLocaleString()}</li>
                 </ul>
               </div>
             ))}

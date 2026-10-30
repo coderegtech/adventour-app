@@ -358,7 +358,7 @@ const BookingScreen = () => {
                 <div className="p-2" key={idx}>
                   <h2 className="text-xs font-semibold">{item.name}</h2>
                   <ul className="text-xs  text-neutral-800">
-                    {item.tours.map((tour, i) => (
+                    {(item.tours ?? []).map((tour, i) => (
                       <li key={i}>
                         {tour.name ? `Tour ${tour.name} - ` : "Tour - "}
                         {tour.destinations
@@ -366,9 +366,9 @@ const BookingScreen = () => {
                           : tour}
                       </li>
                     ))}
-                    <li>Transportation - {item.transportation}</li>
-                    <li>Hotel - {item.hotel}</li>
-                    <li>Price - {item.price.toLocaleString()}</li>
+                    {item.transportation && <li>Transportation - {item.transportation}</li>}
+                    {item.hotel && <li>Hotel - {item.hotel}</li>}
+                    <li>Price - {item.price?.toLocaleString()}</li>
                   </ul>
                 </div>
               ))}
