@@ -2,17 +2,29 @@
 
 Seed data lives in `scripts/seed-data.mjs`. The seed script is `scripts/seed.mjs`. Both run against a **development** Supabase project only.
 
+The tourist spots are real destinations in Palawan, Philippines.
+
 ## What gets seeded
 
 | Entity | Count | Notes |
 | --- | --- | --- |
 | Auth users | 3 | Created through the Auth API |
-| Categories | 5 | All, Beach, Mountain, Heritage, City |
-| Tourist spots | 4 | Two with packages, two with base price only |
+| Categories | 6 | All, Island, Beach, Nature, Diving, Heritage |
+| Tourist spots | 8 | Real Palawan spots; two use base price only, the rest have packages |
 | Bookings | 5 | Covers pending, approved, completed, cancelled |
 | Payments | 5 | One demo payment per booking |
 
-Edge cases included: a very long name, a 15-digit contact number, age 120, and a booking with a package.
+### Tourist spots
+
+El Nido - Bacuit Bay, Puerto Princesa Underground River, Coron Island & Kayangan Lake, Nacpan Beach, Honda Bay Island Hopping, Barracuda Lake, Twin Lagoon, Immaculate Conception Cathedral.
+
+Prices are illustrative sample tour rates in PHP, not official quotes.
+
+### Images
+
+Spot images are freely licensed photos hosted on Wikimedia Commons. Each `image_url` is a verified `upload.wikimedia.org` link resolved through the Commons API. No images are copied into the repository.
+
+Edge cases included: a very long name, a 15-digit contact number, age 120, and a high-value package booking.
 
 ## Demo accounts
 
