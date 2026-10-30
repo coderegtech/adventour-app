@@ -9,6 +9,7 @@ const SearchScreen = () => {
   const [searchInput, setSearchInput] = useState("");
   const [isDataLoading, setIsDataLoading] = useState(false);
   const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
   const [originalItems, setOriginalItems] = useState([]);
   const [selectedItem, setSelectedItem] = useState({
     active: false,
@@ -26,7 +27,7 @@ const SearchScreen = () => {
           setOriginalItems(res.data); // Store original data for filtering
         }
       } catch (error) {
-        console.error("Error fetching tourist spots:", error);
+        setError(error.message);
       } finally {
         setIsDataLoading(false);
       }
@@ -101,6 +102,8 @@ const SearchScreen = () => {
       </header>
 
       <div className="mt-10 py-2">
+        {error && <p role="alert">{error}</p>}
+        {isDataLoading && <p>Loading destinations?</p>}
         <div className="flex flex-col space-y-2">
           {items?.map((item) => {
             return (

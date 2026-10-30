@@ -1,319 +1,81 @@
-import axios from "axios";
-import moment from "moment";
-import {
-  BOOKING_API,
-  BOOKMARKS_API,
-  CATEGORIES_API,
-  GET_USER_API,
-  NOTIFICATION_API,
-  REVIEWS_API,
-  TOURIST_SPOTS_API,
-  UPDATE_BOOKMARKS_API,
-  UPDATE_ROW_USER_API,
-  UPDATE_USER_API,
-  USER_API,
-} from "./API";
+import { requireSupabase } from "./supabase";
 
-export const createAccount = async (data) => {
-  try {
-    // Create a user object with necessary details
-    const user = {
-      uid: data.uid,
-      username: data.username,
-      email: data.email,
-      photoUrl: data.photoUrl,
-      status: "active",
-    };
-
-    // Send a POST request to create a new user account in the backend
-    const res = await axios.post(USER_API, user);
-    console.log(res.data);
-
-    // If the backend request is successful, return the result
-    if (res.data?.success) {
-      return {
-        status: true,
-        message: "User registered successfully",
-        id: res.data?.row,
-      };
-    }
-  } catch (error) {
-    console.log(error);
-  }
+const result = (data) => ({ success: true, data });
+const checked = ({ data, error }) => {
+  if (error) throw error;
+  return data;
 };
-
-export const updateUser = async (newData, id) => {
-  try {
-    // const accountRef = await doc(db, "accounts", uid);
-    // const res = await updateDoc(accountRef, newData);
-
-    const updateData = {
-      column_name: newData.column_name,
-      value: newData.value,
-    };
-
-    const res = await axios.put(UPDATE_USER_API(id), updateData);
-    console.log(res.data);
-
-    if (res.data?.success) {
-      return {
-        status: "success",
-        message: res.data?.result,
-      };
-    }
-    console.log("Updated res: ", res);
-  } catch (error) {
-    console.log(error);
-  }
+const currentUser = async () => {
+  const { user } = checked(await requireSupabase().auth.getUser());
+  if (!user) throw new Error("Please sign in to continue.");
+  return user.id;
 };
+const spot = (row) => ({ ...row, imgUrl: row.image_url, categories: row.category,
+  priceRange: row.price, ratings: row.rating });
+const booking = (row) => ({ ...row, bookId: row.id, travelId: row.spot_id,
+  userId: row.user_id, bookingPrice: row.amount, fullName: row.full_name,
+  contactNumber: row.contact_number, startDate: row.start_date,
+  endDate: row.end_date, package: row.package_name, datetime: row.created_at });
+const bookmark = (row) => ({ ...row, travelId: row.spot_id, userId: row.user_id });
+const review = (row) => ({ ...row, travelId: row.spot_id, userId: row.user_id,
+  name: row.author_name, photoUrl: row.author_avatar_url, ratings: row.rating, datetime: row.created_at });
 
-export const editUser = async (updatedData, id) => {
-  try {
-    // const accountRef = await doc(db, "accounts", uid);
-    // const res = await updateDoc(accountRef, newData);
-
-    const res = await axios.put(UPDATE_ROW_USER_API(id), updatedData);
-    console.log(res.data);
-
-    if (res.data?.success) {
-      return {
-        status: "success",
-        message: res.data?.result,
-      };
-    }
-    console.log("Updated profile res: ", res);
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const isUserExist = async (email) => {
-  try {
-    const { users } = await fetchAllUser();
-    const userId = users.findIndex((item) => item.email === email);
-
-    const res = await axios.get(GET_USER_API(userId));
-    const data = res.data.result;
-    console.log("Use exist: ", data);
-    if (data) {
-      const updateStatus = {
-        column_name: "status",
-        value: "active",
-      };
-      await updateUser(updateStatus, userId);
-      return true;
-    }
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const insertImgUrl = async (imgUrl, id) => {
-  try {
-    const img = {
-      column_name: "photoUrl",
-      value: imgUrl,
-    };
-    const res = await updateUser(img, id);
-
-    return {
-      success: res.data.success,
-      message: "Profile uploaded",
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const fetchUser = async (id) => {
-  try {
-    const res = await axios.get(GET_USER_API(id));
-    const data = res.data.result;
-
-    return {
-      success: res.data.success,
-      data: data,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const fetchAllUser = async () => {
-  try {
-    const res = await axios.get(USER_API);
-    const data = res.data.result;
-
-    return {
-      users: data,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const fetchAllTouristSpots = async () => {
-  try {
-    const res = await axios.get(TOURIST_SPOTS_API);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const addBooking = async (formdata) => {
-  try {
-    const res = await axios.post(BOOKING_API, formdata);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
+export const fetchAllTouristSpots = async () => result(
+  checked(await requireSupabase().from("tourist_spots").select("*").order("name")).map(spot)
+);
+export const fetchAllCategories = async () => result(
+  checked(await requireSupabase().from("categories").select("*").order("sort_order"))
+    .map((row) => ({ ...row, category: row.name, active: row.name === "All" }))
+);
 export const fetchUserBookings = async () => {
-  try {
-    const res = await axios.get(BOOKING_API);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
+  const uid = await currentUser();
+  return result(checked(await requireSupabase().from("bookings").select("*").eq("user_id", uid)
+    .order("created_at", { ascending: false })).map(booking));
 };
-
-export const insertNotification = async (notif) => {
-  try {
-    const res = await axios.post(NOTIFICATION_API, notif);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
+export const addBooking = async (form, method = "card") => {
+  const row = checked(await requireSupabase().rpc("create_demo_booking", {
+    p_spot_id: form.travelId, p_package_name: form.package || null,
+    p_full_name: form.fullName, p_age: form.age === "" ? null : Number(form.age),
+    p_email: form.email, p_contact_number: form.contactNumber,
+    p_start_date: form.startDate, p_end_date: form.endDate,
+    p_method: method, p_request_id: form.requestId,
+  }));
+  return result(booking(row));
 };
-
 export const fetchNotifications = async () => {
-  try {
-    const res = await axios.get(NOTIFICATION_API);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
+  const uid = await currentUser();
+  return result(checked(await requireSupabase().from("notifications").select("*").eq("user_id", uid)
+    .order("created_at", { ascending: false }))
+    .map((row) => ({ ...row, uid: row.user_id, text: row.body, datetime: row.created_at })));
 };
-
-export const fetchAllCategories = async () => {
-  try {
-    const res = await axios.get(CATEGORIES_API);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
+export const fetchAllReviews = async (spotId) => {
+  let query = requireSupabase().from("reviews").select("*").order("created_at", { ascending: false });
+  if (spotId) query = query.eq("spot_id", spotId);
+  return result(checked(await query).map(review));
 };
-
 export const insertReview = async (data) => {
-  try {
-    const review = {
-      id: new Date().getTime().toString(),
-      travelId: data.travelId,
-      userId: data.userId,
-      name: data.name,
-      message: data.message,
-      ratings: data.ratings,
-      datetime: moment().format("YYYY-MM-DD HH:mm:ss"),
-    };
-
-    const res = await axios.post(REVIEWS_API, review);
-
-    if (res.data?.success) {
-      return {
-        status: "success",
-        message: res.data?.result,
-      };
-    }
-  } catch (error) {
-    console.log(error);
-  }
+  const uid = await currentUser();
+  return result(review(checked(await requireSupabase().from("reviews").insert({
+    user_id: uid, spot_id: data.travelId, message: data.message, rating: data.ratings,
+  }).select().single())));
 };
-
-export const fetchAllReviews = async () => {
-  try {
-    const res = await axios.get(REVIEWS_API);
-    const data = res.data;
-
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const insertBookmark = async (bookmark) => {
-  try {
-    const res = await axios.post(BOOKMARKS_API, bookmark);
-
-    const data = res.data;
-    return {
-      success: data.success,
-      data: data.result,
-      id: data.row,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-export const updateBookmark = async (id, bookmark) => {
-  try {
-    const res = await axios.put(UPDATE_BOOKMARKS_API(id), bookmark);
-
-    const data = res.data;
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
 export const fetchBookmarks = async () => {
-  try {
-    const res = await axios.get(BOOKMARKS_API);
-
-    const data = res.data;
-    return {
-      success: data.success,
-      data: data.result,
-    };
-  } catch (error) {
-    console.log(error);
+  const uid = await currentUser();
+  return result(checked(await requireSupabase().from("bookmarks").select("*").eq("user_id", uid)).map(bookmark));
+};
+export const insertBookmark = async (data) => {
+  const uid = await currentUser();
+  const client = requireSupabase();
+  const existing = checked(await client.from("bookmarks").select("*").eq("user_id", uid).eq("spot_id", data.travelId).maybeSingle());
+  if (existing) return result(bookmark(existing));
+  const response = await client.from("bookmarks").insert({ user_id: uid, spot_id: data.travelId }).select().single();
+  if (response.error?.code === "23505") {
+    return result(bookmark(checked(await client.from("bookmarks").select("*").eq("user_id", uid).eq("spot_id", data.travelId).single())));
   }
+  return result(bookmark(checked(response)));
+};
+export const updateBookmark = async (id) => {
+  const uid = await currentUser();
+  checked(await requireSupabase().from("bookmarks").delete().eq("id", id).eq("user_id", uid));
+  return result(null);
 };

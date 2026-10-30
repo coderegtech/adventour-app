@@ -23,6 +23,8 @@ const ShowItem = ({ data, close }) => {
   const [packages, setPackages] = useState([]);
   const [bookmark, setBookmark] = useState(false);
   const [bookmarkId, setBookmarkId] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   // Fetch bookmark status
   useEffect(() => {
@@ -37,7 +39,7 @@ const ShowItem = ({ data, close }) => {
 
         if (existingBookmark) {
           setBookmarkId(existingBookmark.id);
-          setBookmark(existingBookmark.bookmark === "true");
+          setBookmark(true);
         } else {
           setBookmarkId(null);
           setBookmark(false);
@@ -52,32 +54,30 @@ const ShowItem = ({ data, close }) => {
 
   // Toggle bookmark status
   const handleBookmarkToggle = async () => {
-    if (!user?.uid || !data?.id) return;
-
+    if (!user?.uid || !data?.id || saving) return;
+    setSaving(true);
+    setError("");
     try {
       if (bookmark) {
         // Remove bookmark
         if (bookmarkId) {
-          await updateBookmark(bookmarkId, {
-            column_name: "bookmark",
-            value: "false",
-          });
+          await updateBookmark(bookmarkId);
           setBookmark(false);
         }
       } else {
         // Add new bookmark
         const newBookmark = {
-          id: new Date().getTime().toString(),
           travelId: data.id,
           userId: user.uid,
-          bookmark: "true",
         };
         const response = await insertBookmark(newBookmark);
         setBookmarkId(response.data.id);
         setBookmark(true);
       }
     } catch (error) {
-      console.error("Error toggling bookmark:", error.message);
+      setError(error.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -85,7 +85,7 @@ const ShowItem = ({ data, close }) => {
   useEffect(() => {
     try {
       if (data?.packages) {
-        const parsedPackages = JSON.parse(data.packages);
+        const parsedPackages = data.packages;
         setPackages(Array.isArray(parsedPackages) ? parsedPackages : []);
       }
     } catch (error) {
@@ -101,6 +101,7 @@ const ShowItem = ({ data, close }) => {
 
   return (
     <div className="w-full h-full absolute inset-0 bg-white p-4">
+      {error && <p role="alert" className="text-red-600">{error}</p>}
       <div className="w-full min-h-80 relative rounded-3xl shadow-md overflow-hidden p-4">
         <Image
           className="absolute inset-0 w-full h-full bg-white rounded-3xl object-cover"
@@ -170,15 +171,15 @@ const ShowItem = ({ data, close }) => {
                   {item.name}
                 </h2>
                 <ul className="text-xs p-2 text-neutral-800">
-                  {item.tours.map((tour, i) => (
+                  {(item.tours ?? []).map((tour, i) => (
                     <li key={i}>
                       {tour.name ? `Tour ${tour.name} - ` : "Tour - "}
                       {tour.destinations ? tour.destinations.join(" | ") : tour}
                     </li>
                   ))}
-                  <li>Transportation - {item.transportation}</li>
-                  <li>Hotel - {item.hotel}</li>
-                  <li>Price - {item.price.toLocaleString()}</li>
+                  {item.transportation && <li>Transportation - {item.transportation}</li>}
+                  {item.hotel && <li>Hotel - {item.hotel}</li>}
+                  <li>Price - {item.price?.toLocaleString()}</li>
                 </ul>
               </div>
             ))}

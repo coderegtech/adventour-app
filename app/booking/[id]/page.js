@@ -12,7 +12,6 @@ import Loader from "../../../components/Loader";
 import PlaceItem from "../../../components/PlaceItem";
 import {
   fetchAllTouristSpots,
-  insertNotification,
 } from "../../../config/hooks";
 import { AuthContext } from "../../../context/authContext";
 import { DataContext } from "../../../context/dataContext";
@@ -23,8 +22,11 @@ const BookingScreen = () => {
 
   // States
   const { data, setData } = useContext(DataContext);
+  const { user, profile } = useContext(AuthContext);
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [requestId] = useState(() => crypto.randomUUID());
   const [selectedItem, setSelectedItem] = useState(null);
   const [packages, setPackages] = useState([]);
   const [selectedPackage, setSelectedPackage] = useState([]);
@@ -33,19 +35,16 @@ const BookingScreen = () => {
     active: false,
   });
   const [formData, setFormData] = useState({
-    fullName: data?.user?.username || "",
+    fullName: profile?.name || "",
     age: "",
-    email: data?.user?.email || "",
+    email: user?.email || "",
     contactNumber: "",
-    package: selectedPackage[0]?.name || "",
     startDate: "",
     endDate: "",
   });
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { user } = useContext(AuthContext);
-
   // Fetch tourist spot details
   useEffect(() => {
     if (!id) return;
@@ -56,12 +55,12 @@ const BookingScreen = () => {
         const res = await fetchAllTouristSpots();
         if (res.success) {
           const selected = res.data.find((item) => item.id === id);
-          console.log(selected);
+          if (!selected) throw new Error("Destination not found.");
           setSelectedItem(selected);
-          setPackages(JSON.parse(selected?.packages) || []);
+          setPackages(selected?.packages || []);
         }
       } catch (error) {
-        console.log("Error fetching tourist spots:", error);
+        setLoadError(error.message);
       } finally {
         setIsLoading(false);
       }
@@ -71,13 +70,14 @@ const BookingScreen = () => {
   }, [id]);
 
   const bookingData = {
-    bookId: new Date().getTime().toString(),
+    requestId,
     travelId: id,
     userId: user?.uid,
-    bookingPrice: selectedItem?.priceRange,
+    bookingPrice: selectedPackage[0]?.price ?? selectedItem?.priceRange,
     status: "pending",
     datetime: moment().format("YYYY-MM-DD HH:mm:ss"),
     ...formData,
+    package: selectedPackage[0]?.name || "",
   };
 
   // Form handlers
@@ -132,6 +132,8 @@ const BookingScreen = () => {
       }
     }
 
+    if (formData.startDate < moment().format("YYYY-MM-DD")) newErrors.startDate = "Choose today or a future date";
+    if (formData.endDate < formData.startDate) newErrors.endDate = "End date must follow start date";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -151,16 +153,6 @@ const BookingScreen = () => {
       setIsSubmitting(false);
     }, 1000);
 
-    const notif = {
-      id: new Date().getTime().toString(),
-      uid: user?.uid,
-      subject: "Booking Added",
-      text: "Your booking has been successfully added. Thank you for choosing our service!",
-      datetime: moment().format("YYYY-MM-DD HH:mm:ss"),
-    };
-
-    const res = await insertNotification(notif);
-    console.log("Booking Added: ", res.data);
     setData((prev) => ({
       ...prev,
       bookItem: selectedItem,
@@ -182,6 +174,8 @@ const BookingScreen = () => {
   if (isLoading) {
     return <Loader />;
   }
+
+  if (loadError) return <p role="alert" className="p-4">{loadError}</p>;
 
   if (isSubmitting) {
     return <Loader />;
@@ -230,7 +224,7 @@ const BookingScreen = () => {
         <h1 className="ml-4 text-xl font-semibold">New Booking</h1>
       </header>
 
-      <form onSubmit={handleSubmit} className="px-4 py-6 space-y-6">
+      <form onSubmit={(event) => event.preventDefault()} className="px-4 py-6 space-y-6">
         {/* Selected Tourist Spot Section */}
         <section>
           <div className="flex items-center gap-2 mb-3">
@@ -364,7 +358,7 @@ const BookingScreen = () => {
                 <div className="p-2" key={idx}>
                   <h2 className="text-xs font-semibold">{item.name}</h2>
                   <ul className="text-xs  text-neutral-800">
-                    {item.tours.map((tour, i) => (
+                    {(item.tours ?? []).map((tour, i) => (
                       <li key={i}>
                         {tour.name ? `Tour ${tour.name} - ` : "Tour - "}
                         {tour.destinations
@@ -372,9 +366,9 @@ const BookingScreen = () => {
                           : tour}
                       </li>
                     ))}
-                    <li>Transportation - {item.transportation}</li>
-                    <li>Hotel - {item.hotel}</li>
-                    <li>Price - {item.price.toLocaleString()}</li>
+                    {item.transportation && <li>Transportation - {item.transportation}</li>}
+                    {item.hotel && <li>Hotel - {item.hotel}</li>}
+                    <li>Price - {item.price?.toLocaleString()}</li>
                   </ul>
                 </div>
               ))}

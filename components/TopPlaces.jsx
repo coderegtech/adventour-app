@@ -37,14 +37,11 @@ const TopPlaces = (props) => {
   };
 
   // Handle selection of a place
-  const handleSelectItem = (id, index) => {
+  const handleSelectItem = (id) => {
     if (!id) return;
-    console.log("Index:", index + 1);
-    console.log("ID:", id);
-
     const selectedItem = props.data?.find((item) => item.id === id);
     props.setSelectedItem({
-      id: index + 1,
+      id,
       data: selectedItem,
       active: true,
     });
@@ -53,10 +50,10 @@ const TopPlaces = (props) => {
   return (
     <div className="w-full py-2 relative">
       <div className="flex flex-wrap space-y-2">
-        {props.data?.map((item, index) => (
+        {props.data?.map((item) => (
           <PlaceItem
             key={item.id}
-            onClick={() => handleSelectItem(item.id, index)}
+            onClick={() => handleSelectItem(item.id)}
             imgUrl={item.imgUrl}
             name={item.name}
             address={item.address}

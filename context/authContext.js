@@ -1,67 +1,92 @@
 "use client";
-import { getRedirectResult, onAuthStateChanged } from "firebase/auth";
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useEffect, useState } from "react";
-import { auth } from "../config/firebase_config";
+import { usePathname, useRouter } from "next/navigation";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { supabase } from "../config/supabase";
+import Loader from "../components/Loader";
 import { DataContext } from "./dataContext";
 
 export const AuthContext = createContext({});
+const publicRoutes = ["/", "/login", "/signup", "/forgot_password", "/reset_password", "/privacy-policy", "/account-deletion"];
 
 const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const { data } = useContext(DataContext);
+  const [loading, setLoading] = useState(true);
+  const [profile, setProfile] = useState(null);
+  const [profileError, setProfileError] = useState("");
+  const [recoveryMode, setRecoveryMode] = useState(false);
+  const { setData } = useContext(DataContext);
   const router = useRouter();
+  const pathname = usePathname();
+  const currentUserId = useRef(null);
 
-  // Redirect to the appropriate page based on user state
   useEffect(() => {
-    if (user) {
-      router.push("/home");
-    } else {
-      router.push("/");
+    if (!supabase) {
+      setLoading(false);
+      return;
     }
-  }, [router, user]);
-
-  useEffect(() => {
-    const getUser = async () => {
-      try {
-        // Handle Google and other provider-based redirects
-        const response = await getRedirectResult(auth);
-        if (response) {
-          console.log(response);
-          const token = await response.user.getIdToken();
-          setUser({
-            uid: response.user.uid,
-            accessToken: token,
-          });
-        }
-      } catch (error) {
-        console.log("Error getting redirect result:", error);
-      }
+    let active = true;
+    let authEventReceived = false;
+    const applySession = (session) => {
+      if (!active) return;
+      const nextUser = session?.user;
+      currentUserId.current = nextUser?.id || null;
+      setUser(nextUser ? { ...nextUser, uid: nextUser.id } : null);
+      setLoading(false);
     };
-
-    getUser();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      authEventReceived = true;
+      if (event === "PASSWORD_RECOVERY") setRecoveryMode(true);
+      if (event === "SIGNED_OUT") setRecoveryMode(false);
+      applySession(session);
+    });
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (!authEventReceived) applySession(error ? null : data.session);
+    }).catch(() => {
+      if (!authEventReceived) applySession(null);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase.from("profiles").select("id, name, avatar_url").eq("id", user.id).maybeSingle();
+    if (error) throw error;
+    if (currentUserId.current !== user.id) return;
+    const nextProfile = {
+      id: user.id,
+      uid: user.id,
+      username: data?.name || user.user_metadata?.name || user.user_metadata?.full_name || "Traveler",
+      photoUrl: data?.avatar_url || user.user_metadata?.avatar_url || "",
+      email: user.email || "",
+    };
+    setProfile(nextProfile);
+    setProfileError("");
+    setData((previous) => ({ ...previous, user: nextProfile, userId: user.id }));
+  }, [user, setData]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        const token = await currentUser.getIdToken();
-        setUser({
-          uid: currentUser.uid,
-          accessToken: token,
-        });
-      } else {
-        setUser(null);
-      }
+    setProfile(null);
+    setProfileError("");
+    setData((previous) => ({ ...previous, user: null, userId: null }));
+    if (user) refreshProfile().catch(() => {
+      if (currentUserId.current === user.id) setProfileError("Your profile could not be loaded. Please reload to try again.");
     });
+  }, [user, refreshProfile, setData]);
 
-    // Cleanup the listener on unmount
-    return () => unsubscribe();
-  }, []);
+  const isPublic = publicRoutes.includes(pathname);
+  useEffect(() => {
+    if (loading) return;
+    if (recoveryMode && pathname !== "/reset_password") router.replace("/reset_password");
+    else if (!user && !isPublic) router.replace("/login");
+    else if (user && ["/", "/login", "/signup"].includes(pathname)) router.replace("/home");
+  }, [loading, user, pathname, isPublic, recoveryMode, router]);
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
-      {children}
+    <AuthContext.Provider value={{ user, loading, profile, profileError, refreshProfile, recoveryMode, finishRecovery: () => setRecoveryMode(false) }}>
+      {(!isPublic && (loading || !user)) || (recoveryMode && pathname !== "/reset_password") ? <Loader /> : children}
     </AuthContext.Provider>
   );
 };
