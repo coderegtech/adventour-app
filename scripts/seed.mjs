@@ -42,9 +42,24 @@ async function createOrFindUser(admin, user) {
   return existing.id;
 }
 
+// Checks the tables exist before we create any users, so a missing migration
+// fails with a clear message instead of a confusing "schema cache" error.
+async function checkTablesExist(admin) {
+  const { error } = await admin.from("categories").select("id").limit(1);
+  if (error) {
+    throw new Error(
+      "The database tables were not found. Apply the migration first " +
+        "(npx supabase db push or run supabase/migrations/202610300001_initial.sql). " +
+        "Original error: " + error.message
+    );
+  }
+}
+
 async function run() {
   checkSafety();
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } });
+
+  await checkTablesExist(admin);
 
   // Users first, so profile rows and bookings can reference them.
   const userIds = {};
