@@ -7,6 +7,9 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 <img src="docs/screenshots/signup.png" alt="Sign up" width="200" />
 <img src="docs/screenshots/forgot_password.png" alt="Forgot password" width="200" />
 <img src="docs/screenshots/privacy-policy.png" alt="Privacy policy" width="200" />
+<img src="docs/screenshots/home.jpg" alt="Home" width="200" />
+<img src="docs/screenshots/search.jpg" alt="Search" width="200" />
+<img src="docs/screenshots/item.jpg" alt="Spot details" width="200" />
 
 ## Getting Started
 
