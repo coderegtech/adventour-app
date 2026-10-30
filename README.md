@@ -1,5 +1,13 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+## Screenshots
+
+<img src="docs/screenshots/landing.png" alt="Landing" width="200" />
+<img src="docs/screenshots/login.png" alt="Login" width="200" />
+<img src="docs/screenshots/signup.png" alt="Sign up" width="200" />
+<img src="docs/screenshots/forgot_password.png" alt="Forgot password" width="200" />
+<img src="docs/screenshots/privacy-policy.png" alt="Privacy policy" width="200" />
+
 ## Getting Started
 
 First, run the development server:
