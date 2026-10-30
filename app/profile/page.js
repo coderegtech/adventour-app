@@ -1,6 +1,5 @@
 "use client";
 
-import { signOut } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { useContext, useState } from "react";
 import { GoBell } from "react-icons/go";
@@ -12,34 +11,26 @@ import BottomNavbar from "../../components/BottomNavbar";
 import Loader from "../../components/Loader";
 import Profile from "../../components/Profile";
 import TermsAndCondition from "../../components/TermsAndCondition";
-import { auth } from "../../config/firebase_config";
-import { updateUser } from "../../config/hooks";
-import { DataContext } from "../../context/dataContext";
+import { requireSupabase } from "../../config/supabase";
+import { AuthContext } from "../../context/authContext";
 
 const ProfileScreen = () => {
-  const { data, setData } = useContext(DataContext);
+  const { user, profile } = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTermsAndCondition, setActiveTermsAndCondition] = useState(false);
   const router = useRouter();
-  console.log("User Id", data?.userId);
 
   const logoutUser = async () => {
+    if (isLoading) return;
+    setIsLoading(true);
     try {
-      if (!data?.userId) return;
-
-      const newData = {
-        column_name: "status",
-        value: "inactive",
-      };
-      setIsLoading(true);
-
-      await updateUser(newData, data?.userId);
-      await signOut(auth);
-      router.push("/");
-
-      setIsLoading(false);
+      const { error } = await requireSupabase().auth.signOut();
+      if (error) throw error;
+      router.replace("/");
     } catch (error) {
-      console.log(error);
+      alert(error.message || "Unable to log out. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -57,15 +48,15 @@ const ProfileScreen = () => {
         ></div>
 
         <div className="z-50">
-          <Profile photoUrl={data?.user?.photoUrl} size={150} />
+          <Profile photoUrl={profile?.photoUrl} size={150} />
         </div>
 
         <span className="py-4">
           <p className="text-2xl font-bold text-black text-center">
-            {data?.user?.username}
+            {profile?.username || user?.user_metadata?.name || "Traveler"}
           </p>
           <p className="text-sm text-neutral-500 text-center">
-            {data?.user?.email}
+            {user?.email}
           </p>
         </span>
       </div>

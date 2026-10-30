@@ -1,29 +1,30 @@
 "use client";
-import { sendPasswordResetEmail } from "firebase/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { ToastContainer } from "react-toastify";
 import Button from "../../components/Button";
-import { auth } from "../../config/firebase_config";
-import { ToastifySuccess } from "../../config/functions";
+import { requireSupabase } from "../../config/supabase";
+import { ToastifyError, ToastifySuccess } from "../../config/functions";
 
 const ForgotPasswordScreen = () => {
   const [email, setEmail] = useState("");
-  const [isLoading, setIsloading] = useState();
+  const [isLoading, setIsloading] = useState(false);
 
   const handleForgotPassword = async () => {
+    if (isLoading || !email.trim()) return;
     setIsloading(true);
-
-    await sendPasswordResetEmail(auth, email)
-      .then((res) => {
-        console.log(res);
-        setIsloading(false);
-        ToastifySuccess("Check your email");
-      })
-      .catch((error) => {
-        console.error(error);
+    try {
+      const { error } = await requireSupabase().auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin + "/reset_password",
       });
+      if (error) throw error;
+      ToastifySuccess("If an account exists, a password reset link will be sent to your email.");
+    } catch (error) {
+      ToastifyError(error.message || "Unable to send password reset email");
+    } finally {
+      setIsloading(false);
+    }
   };
   return (
     <div className="w-full h-full bg-white p-6">
@@ -61,7 +62,7 @@ const ForgotPasswordScreen = () => {
           alt=""
         />
       </div>
-      <form className="mt-5">
+      <form className="mt-5" onSubmit={(event) => { event.preventDefault(); handleForgotPassword(); }}>
         <p className="pb-4 text-sm text-neutral-600">
           Enter you email to reset password
         </p>
@@ -77,7 +78,7 @@ const ForgotPasswordScreen = () => {
             />
           </div>
 
-          <Button disabled={!email} onPress={handleForgotPassword}>
+          <Button disabled={isLoading || !email.trim()} onPress={handleForgotPassword}>
             {isLoading ? "Loading..." : "Send Verification"}
           </Button>
         </div>

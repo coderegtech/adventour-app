@@ -1,8 +1,7 @@
 "use client";
 
-import { createUserWithEmailAndPassword } from "firebase/auth";
 import Link from "next/link";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ToastContainer } from "react-toastify";
 import Button from "../../components/Button";
@@ -10,11 +9,8 @@ import { AppIcon } from "../../components/Icons";
 import Loader from "../../components/Loader";
 import SocialAuth from "../../components/SocialAuth";
 import TermsAndCondition from "../../components/TermsAndCondition";
-import { auth } from "../../config/firebase_config";
+import { requireSupabase } from "../../config/supabase";
 import { ToastifyError, ToastifySuccess } from "../../config/functions";
-import { createAccount } from "../../config/hooks";
-import { AuthContext } from "../../context/authContext";
-import { DataContext } from "../../context/dataContext";
 
 const SignupScreen = () => {
   const [username, setUsername] = useState("");
@@ -22,8 +18,6 @@ const SignupScreen = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser } = useContext(AuthContext);
-  const { data, setData } = useContext(DataContext);
   const [isTermsChecked, setIsTermsChecked] = useState(false);
   const [activeTermsAndCondition, setActiveTermsAndCondition] = useState(false);
   const [errMsg, setErrMsg] = useState({
@@ -34,10 +28,10 @@ const SignupScreen = () => {
   const [loadingPage, setLoadingPage] = useState(false);
 
   const handleRegisterAccount = async () => {
-    if (!email || !password || !confirmPassword) {
+    if (isLoading) return;
+    if (!username.trim() || !email.trim() || !password || !confirmPassword) {
       ToastifyError("Please fill up all fields");
       setIsLoading(false);
-      clearInputs();
 
       return;
     }
@@ -45,7 +39,6 @@ const SignupScreen = () => {
     if (password !== confirmPassword) {
       ToastifyError("Password not match");
       setIsLoading(false);
-      clearInputs();
       return;
     }
 
@@ -60,42 +53,20 @@ const SignupScreen = () => {
 
     setIsLoading(true);
 
-    await createUserWithEmailAndPassword(auth, email, password)
-      .then(async (res) => {
-        console.log("Registered account: ", res.user);
-        const result = res.user;
-
-        const data = {
-          uid: result.uid,
-          username: username,
-          email: result.email,
-          photoUrl: "",
-        };
-        const response = await createAccount(data);
-
-        if (response?.status) {
-          ToastifySuccess(response.message);
-          setIsLoading(false);
-
-          setData((prevData) => ({
-            ...prevData,
-            user: data,
-            userId: response?.id,
-          }));
-        }
-      })
-      .catch((error) => {
-        console.log("Firebase create account: ", error);
-
-        // If the error is "auth/email-already-in-use"
-        if (error.code === "auth/email-already-in-use") {
-          ToastifyError("User already exist!");
-          setIsLoading(false);
-          return;
-        }
+    try {
+      const { data, error } = await requireSupabase().auth.signUp({
+        email: email.trim(),
+        password,
+        options: { data: { name: username.trim() }, emailRedirectTo: window.location.origin + "/home" },
       });
-
-    clearInputs();
+      if (error) throw error;
+      ToastifySuccess(data.session ? "Account created successfully" : "Check your email to confirm your account before signing in.");
+      clearInputs();
+    } catch (error) {
+      ToastifyError(error.message || "Unable to create account");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const clearInputs = () => {
@@ -142,7 +113,7 @@ const SignupScreen = () => {
         <AppIcon width={180} height={180} />
       </div>
 
-      <form>
+      <form onSubmit={(event) => { event.preventDefault(); handleRegisterAccount(); }}>
         <p className="pb-4 text-sm text-neutral-600">Create your Account</p>
 
         <div className="w-full flex flex-col space-y-4">
@@ -153,7 +124,7 @@ const SignupScreen = () => {
               placeholder="Username"
               onChange={(e) => setUsername(e.target.value)}
               value={username}
-              autocompleted="off"
+              autoComplete="off"
               required
             />
           </div>
@@ -165,7 +136,7 @@ const SignupScreen = () => {
               placeholder="Email"
               onChange={(e) => setEmail(e.target.value)}
               value={email}
-              autocompleted="off"
+              autoComplete="off"
               required
             />
           </div>
@@ -180,7 +151,7 @@ const SignupScreen = () => {
               placeholder="Password"
               onChange={(e) => setPassword(e.target.value)}
               value={password}
-              autocompleted="off"
+              autoComplete="off"
               required
             />
 
@@ -203,7 +174,7 @@ const SignupScreen = () => {
               placeholder="Confirm Password"
               onChange={(e) => setConfirmPassword(e.target.value)}
               value={confirmPassword}
-              autocompleted="off"
+              autoComplete="off"
               required
             />
 
@@ -241,7 +212,7 @@ const SignupScreen = () => {
           </div>
 
           <Button
-            disabled={!username || !email || !password || !confirmPassword}
+            disabled={isLoading || !username || !email || !password || !confirmPassword}
             onPress={handleRegisterAccount}
           >
             {isLoading ? "Loading..." : "Create Account"}

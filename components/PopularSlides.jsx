@@ -1,18 +1,7 @@
-export const fetchTouristSpots = async () => {
-  try {
-    const highRatingItem = data?.filter((item) => item.ratings > 3);
-    console.log(highRatingItem);
+"use client";
 
-    return {
-      locations: highRatingItem,
-    };
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-const PopularSlides = async ({ data, setSelectedItem }) => {
-  const { locations } = await fetchTouristSpots();
+const PopularSlides = ({ data = [], setSelectedItem }) => {
+  const locations = data.filter((item) => item.ratings > 3);
 
   const handleSelectItem = (id) => {
     if (!id) return;

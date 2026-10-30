@@ -19,7 +19,7 @@ const Categories = (props) => {
         if (res.success) {
           const updatedCategories = res.data.map((category) => ({
             ...category,
-            active: category.active === "true",
+            active: category.active,
           }));
 
           setCategories(updatedCategories);

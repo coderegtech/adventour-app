@@ -1,53 +1,38 @@
 "use client";
-import { signInWithEmailAndPassword } from "firebase/auth";
 import Link from "next/link";
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { ToastContainer } from "react-toastify";
 import Button from "../../components/Button";
 import { AppIcon } from "../../components/Icons";
 import Loader from "../../components/Loader";
 import SocialAuth from "../../components/SocialAuth";
-import { auth } from "../../config/firebase_config";
+import { requireSupabase } from "../../config/supabase";
 import { ToastifyError, ToastifySuccess } from "../../config/functions";
-import { AuthContext } from "../../context/authContext";
 
 const LoginScreen = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const { setUser } = useContext(AuthContext);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingPage, setLoadingPage] = useState(false);
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (isLoading) return;
+    if (!email.trim() || !password) {
       ToastifyError("Please fill up all fields");
-      clearInputs();
       return;
     }
-
     setIsLoading(true);
-    await signInWithEmailAndPassword(auth, email, password)
-      .then((res) => {
-        console.log("Logged In: ", res);
-        ToastifySuccess("Logged in successfully");
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        console.error("Login Error:", errorCode, errorMessage);
-        ToastifyError("Wrong credentials");
-        setIsLoading(false);
-      });
-
-    clearInputs();
-  };
-
-  const clearInputs = () => {
-    setEmail("");
-    setPassword("");
+    try {
+      const { error } = await requireSupabase().auth.signInWithPassword({ email: email.trim(), password });
+      if (error) throw error;
+      ToastifySuccess("Logged in successfully");
+    } catch (error) {
+      ToastifyError(error.message || "Unable to sign in");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (loadingPage) {
@@ -73,7 +58,7 @@ const LoginScreen = () => {
         <AppIcon width={200} height={200} />
       </div>
 
-      <form>
+      <form onSubmit={(event) => { event.preventDefault(); handleLogin(); }}>
         <p className="pb-4 text-base text-neutral-600">Login to your Account</p>
 
         <div className="w-full flex flex-col space-y-4">
@@ -113,7 +98,7 @@ const LoginScreen = () => {
           </div>
 
           <div>
-            <Button onPress={handleLogin}>
+            <Button disabled={isLoading} onPress={handleLogin}>
               {isLoading ? "Loading..." : "Sign In"}
             </Button>
 

@@ -14,7 +14,6 @@ import ShowItem from "../../components/ShowItem";
 import TopPlaces from "../../components/TopPlaces";
 import {
   fetchAllTouristSpots,
-  fetchAllUser,
   fetchNotifications,
 } from "../../config/hooks";
 import { AuthContext } from "../../context/authContext";
@@ -23,18 +22,16 @@ const HomeScreen = () => {
   const router = useRouter();
   const { user } = useContext(AuthContext);
   const { data, setData } = useContext(DataContext);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const [isDataLoading, setIsDataLoading] = useState(false);
-  const [newNotif, setNewnotif] = useState(false);
   const [selectedItem, setSelectedItem] = useState({
-    id: 1,
+    id: null,
     active: false,
     data: null,
   });
   const [items, setItems] = useState([]);
   const [originalItems, setOriginalItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [notifiedBookings, setNotifiedBookings] = useState([]);
 
   // real time changes
   useEffect(() => {
@@ -48,7 +45,7 @@ const HomeScreen = () => {
           );
           setNotifications(filteredNotif);
         } else {
-          console.error("Failed to fetch notifications");
+          setNotifications([]);
         }
       } catch (error) {
         console.error("Error fetching notifications:", error);
@@ -56,34 +53,8 @@ const HomeScreen = () => {
     };
 
     // Initial fetch when the component mounts
-    Notifications();
-  }); // Runs everytime
-
-  // fetch user data
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user?.uid) return; // Guard clause for when user is not available
-
-      setIsLoading(true);
-      try {
-        const { users } = await fetchAllUser();
-        const currentUser = users.find((item) => item.uid === user.uid);
-        const index = users.findIndex((item) => item.uid === user.uid);
-
-        setData((prevData) => ({
-          ...prevData,
-          user: currentUser,
-          userId: index,
-        }));
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [setData, user?.uid]);
+    if (user?.uid) Notifications();
+  }, [user?.uid]);
 
   // fetch tourist spots
   useEffect(() => {
@@ -100,7 +71,7 @@ const HomeScreen = () => {
           }));
         }
       } catch (error) {
-        console.error("Error fetching tourist spots:", error);
+        setError(error.message);
       } finally {
         setIsDataLoading(false);
       }
@@ -121,14 +92,10 @@ const HomeScreen = () => {
     setItems(filteredData);
   };
 
-  if (isLoading) {
-    return <Loader />;
-  }
 
   if (selectedItem.active) {
     return (
       <ShowItem
-        index={selectedItem.id}
         data={selectedItem.data}
         close={() => setSelectedItem({ active: false, data: null })}
       />
@@ -169,6 +136,8 @@ const HomeScreen = () => {
       </header>
 
       <main className="w-full px-4 bg-white py-16">
+        {error && <p role="alert" className="text-red-600">{error}</p>}
+        {isDataLoading && <p>Loading destinations?</p>}
         <h2 className="text-4xl max-w-72 font-sans pb-2">
           Where would you like to go?
         </h2>

@@ -6,7 +6,6 @@ import { useContext, useEffect, useState } from "react";
 import { FaRegPaperPlane } from "react-icons/fa6";
 import {
   fetchAllReviews,
-  fetchAllUser,
   fetchUserBookings,
   insertReview,
 } from "../config/hooks";
@@ -16,8 +15,6 @@ import Ratings from "./Ratings";
 
 const Reviews = (props) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [reviews, setReviews] = useState([]);
-  const [users, setUsers] = useState([]);
   const [reviewsData, setReviewsData] = useState([]);
   const { data } = useContext(DataContext);
 
@@ -30,68 +27,26 @@ const Reviews = (props) => {
 
     const fetchReviews = async () => {
       try {
-        const res = await fetchAllReviews();
+        const res = await fetchAllReviews(props.travelId);
         if (res.success) {
           const filteredData = res.data?.filter(
             (item) => item.travelId === props.travelId
           );
-          setReviews(filteredData);
+          setReviewsData(filteredData);
         }
       } catch (error) {
-        console.log(error);
+        setError(error.message);
       }
     };
     fetchReviews();
   }, [props.travelId]);
 
-  // Fetch all users for reviews
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      try {
-        const res = await fetchAllUser();
-        const usersId = reviews?.map((item) => item.userId);
-        const filteredUsers = res.users?.filter((user) =>
-          usersId.includes(user.uid)
-        );
-        console.log(filteredUsers);
-
-        setUsers(filteredUsers);
-      } catch (error) {
-        console.error("Error fetching user data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchUsers();
-  }, [reviews]);
-
-  // Combine reviews and users data
-  useEffect(() => {
-    if (reviews.length && users.length) {
-      const combinedData = reviews.map((review) => {
-        console.log(review);
-
-        const user = users.find((user) => user.uid === review.userId);
-        console.log(user);
-
-        return {
-          ...review,
-          name: user?.username,
-          photoUrl: user?.photoUrl,
-          ratings: review.ratings, // Include ratings from review
-        };
-      });
-
-      console.log("Combined Data:", combinedData);
-      setReviewsData(combinedData);
-    }
-  }, [reviews, users]);
-
+  const [error, setError] = useState("");
   const [isEmptyValue, setIsEmptyValue] = useState(false);
 
   const handleSubmit = async () => {
-    if (!value) {
+    if (isLoading) return;
+    if (!value.trim() || rating < 1) {
       setIsEmptyValue(true);
       return;
     }
@@ -103,18 +58,19 @@ const Reviews = (props) => {
       message: value,
       ratings: rating, // Send the selected rating
     };
-    await insertReview(newReview); // Assuming insertReview takes the newReview as an argument
-    setReviewsData([
-      ...reviewsData,
-      {
-        ...newReview,
-        name: data?.user?.username,
-        photoUrl: data?.user?.photoUrl,
-      },
-    ]); // Update the local state with the new review
-    setValue(""); // Clear the review message
-    setRating(0); // Clear the rating
-    setIsEmptyValue(false);
+    setIsLoading(true);
+    setError("");
+    try {
+      const res = await insertReview(newReview);
+      setReviewsData((previous) => [res.data, ...previous]);
+      setValue("");
+      setRating(0);
+      setIsEmptyValue(false);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleRatings = (newRating) => {
@@ -130,7 +86,7 @@ const Reviews = (props) => {
         if (res.success) {
           const userBooking = res.data.find(
             (item) =>
-              item.travelId === props.travelId && item.userId === data.user.uid
+              item.travelId === props.travelId && item.userId === data.user.uid && item.status === "completed"
           );
 
           const isAlreadyBooked = userBooking?.status === "completed";
@@ -153,7 +109,7 @@ const Reviews = (props) => {
             <p className="text-neutral-500">Loading...</p>
           ) : (
             reviewsData.map((item, index) => (
-              <ReviewItem key={index} {...item} />
+              <ReviewItem key={item.id} {...item} />
             ))
           )}
         </div>
@@ -219,7 +175,7 @@ const ReviewItem = (props) => {
           <div className="flex flex-col">
             <p className="text-base text-black">{props.name}</p>
             <p className="text-xs text-neutral-500">
-              {moment().fromNow(props.datetime)}
+              {moment(props.datetime).fromNow()}
             </p>
           </div>
         </div>

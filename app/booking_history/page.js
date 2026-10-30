@@ -162,8 +162,8 @@ const BookingsList = ({ isLoading, error, bookings }) => {
     );
   }
 
-  return bookings.map((booking, index) => (
-    <BookingItem key={index} booking={booking} />
+  return bookings.map((booking) => (
+    <BookingItem key={booking.id} booking={booking} />
   ));
 };
 

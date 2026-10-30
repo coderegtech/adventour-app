@@ -8,6 +8,7 @@ import { AuthContext } from "../../context/authContext";
 
 const BookmarkScreen = () => {
   const [items, setItems] = useState([]);
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useContext(AuthContext);
   const [selectedItem, setSelectedItem] = useState({
@@ -27,11 +28,11 @@ const BookmarkScreen = () => {
         console.log("Isbookmarked:", isBookmarked);
         setBookmark(isBookmarked);
       } catch (error) {
-        console.error("Error fetching bookmark:", error);
+        setError(error.message);
       }
     };
 
-    fetchIsBookmarked();
+    if (user?.uid) fetchIsBookmarked();
   }, [selectedItem.data?.id, user?.uid]);
   // fetch tourist spots
   useEffect(() => {
@@ -48,7 +49,7 @@ const BookmarkScreen = () => {
           setItems(filterSpots);
         }
       } catch (error) {
-        console.error("Error fetching tourist spots:", error);
+        setError(error.message);
       } finally {
         setIsLoading(false);
       }
@@ -72,6 +73,8 @@ const BookmarkScreen = () => {
         <b className="text-2xl text-black">Bookmarks</b>
       </header>
       <div className="py-10">
+        {error && <p role="alert">{error}</p>}
+        {isLoading && <p>Loading bookmarks?</p>}
         <TopPlaces data={items} setSelectedItem={(dt) => setSelectedItem(dt)} />
       </div>
 

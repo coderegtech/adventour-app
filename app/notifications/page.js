@@ -23,7 +23,7 @@ const NotificationScreen = () => {
             const filteredNotif = await res.data?.filter(
               (item) => item.uid === user?.uid
             );
-            setNotifications(filteredNotif.reverse());
+            setNotifications(filteredNotif);
           }
         } else {
           setError("Failed to load notifications.");
@@ -70,7 +70,7 @@ const NotificationScreen = () => {
           </p>
         )}
         {notifications?.map((item, index) => {
-          return <NotificationItem key={index} {...item} />;
+          return <NotificationItem key={item.id} {...item} />;
         })}
       </div>
     </div>
